@@ -2,6 +2,9 @@ import socket
 import os
 import threading
 import pickle
+from utils.uitls import *
+# 读取人员信息
+
 
 # 服务器主机和端口
 SERVER_HOST = "127.0.0.1"
@@ -12,48 +15,15 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((SERVER_HOST, SERVER_PORT))
 
 # 监听客户端连接
-server_socket.listen(1)
+server_socket.listen(5)
 print(f"服务器正在监听端口 {SERVER_PORT}...")
 
 while True:
     client_socket, client_address = server_socket.accept()
     print(f"接受来自 {client_address} 的连接")
 
-    # 接收客户端请求
-    request = client_socket.recv(1024).decode()
-    print(f"收到数据{request}")
-    if request.startswith("GET"):
-        # 处理客户端下载视频的请求
-        video_filename = "../videos/server_video.mp4"  # 视频文件名
-        with open(video_filename, "rb") as video_file:
-            video_data = video_file.read()
-        client_socket.send(video_data)
-        print(f"已向 {client_address} 发送视频文件")
-    elif request.startswith("POST_VIDEO"):
-        # 处理客户端上传视频的请求
-        video_data = b""
-        print('指令POST_VIDEO正在接收文件...')
-        while True:
-            data_chunk = client_socket.recv(1024)
-            video_data += data_chunk
-            if   b"EOF" in data_chunk:
-                break
-        video_data = video_data[:-3]
+    # 为每个连接创建一个线程,线程内的操作在client_handle中
+    client_thread = threading.Thread(target=client_handle, args=(client_socket,client_address))
+    client_thread.start()
 
-        with open("uploaded_video.mp4", "wb") as uploaded_video:
-            uploaded_video.write(video_data)
-        print(f"已从 {client_address} 接收上传的视频文件")
-    elif request.startswith("POST_homework"):
-        # 处理客户端上传视频的请求
-        homework_data = b""
-        print('指令POST_homework正在接收文件...')
-        while True:
-            data_chunk = client_socket.recv(1024)
-            if not data_chunk:
-                break
-            homework_data += data_chunk
-
-        homework = pickle.loads(homework_data)
-        print(f"已从 {client_address} 接收上传的作业文件")
-
-    client_socket.close()
+   
